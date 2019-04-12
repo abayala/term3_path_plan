@@ -49,12 +49,19 @@ int main() {
     map_waypoints_dx.push_back(d_x);
     map_waypoints_dy.push_back(d_y);
   }
-
+#ifdef _WIN32
+  h.onMessage ( [ &map_waypoints_x , &map_waypoints_y , &map_waypoints_s ,
+                &map_waypoints_dx , &map_waypoints_dy ]
+                ( uWS::WebSocket<uWS::SERVER>* ws , char *data , size_t length ,
+                  uWS::OpCode opCode )
+  {
+#else
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
                &map_waypoints_dx,&map_waypoints_dy]
               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                uWS::OpCode opCode) {
-    // "42" at the start of the message means there's a websocket message event.
+#endif
+      // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
@@ -103,27 +110,49 @@ int main() {
           msgJson["next_y"] = next_y_vals;
 
           auto msg = "42[\"control\","+ msgJson.dump()+"]";
-
+#ifdef _WIN32
+          ws->send ( msg.data ( ) , msg.length ( ) , uWS::OpCode::TEXT );
+#else
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+#endif
         }  // end "telemetry" if
       } else {
         // Manual driving
         std::string msg = "42[\"manual\",{}]";
+#ifdef _WIN32
+        ws->send ( msg.data ( ) , msg.length ( ) , uWS::OpCode::TEXT );
+#else
         ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+#endif
       }
     }  // end websocket if
   }); // end h.onMessage
-
-  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
+#ifdef _WIN32
+  h.onConnection([&h](uWS::WebSocket<uWS::SERVER>* ws, uWS::HttpRequest req) {
     std::cout << "Connected!!!" << std::endl;
   });
+#else
+  h.onConnection ( [ &h ]( uWS::WebSocket<uWS::SERVER> ws , uWS::HttpRequest req )
+  {
+      std::cout << "Connected!!!" << std::endl;
+  } );
+#endif
 
+
+#ifdef _WIN32
+  h.onDisconnection ( [ &h ]( uWS::WebSocket<uWS::SERVER>* ws , int code ,
+                              char *message , size_t length )
+  {
+      ws->close ( );
+      std::cout << "Disconnected" << std::endl;
+  } );
+#else
   h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
                          char *message, size_t length) {
     ws.close();
     std::cout << "Disconnected" << std::endl;
   });
-
+#endif
   int port = 4567;
   if (h.listen(port)) {
     std::cout << "Listening to port " << port << std::endl;

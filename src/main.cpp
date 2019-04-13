@@ -14,7 +14,7 @@
 using nlohmann::json;
 using std::string;
 using std::vector;
-
+double ref_vel = 0;
 int main() {
   uWS::Hub h;
 
@@ -115,7 +115,7 @@ int main() {
           const double CLOSE_RANGE = 30; // expressed in meters
           const double MAX_SPEED = 49.5; // expressed in miles per hour
           const double SPEED_INCREMENT = 0.224; // expressed in miles per hour
-          double ref_vel = 49.5;
+          
 
           size_t prev_size = previous_path_x.size ( );
           if ( prev_size > 0 )

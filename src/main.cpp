@@ -111,9 +111,11 @@ int main() {
           int lane = 1;
           //cosntants
           const double FRAME_RATE = 0.02;
-          const double MPH_TO_MTSPS = 1.0/2.24;
-          const double CLOSE_RANGE = 30;
-          double ref_vel = 49.5*MPH_TO_MTSPS;
+          const double MPH_TO_MTSPS = 1.0/2.24; // factor to transform miles per hour to meters per second
+          const double CLOSE_RANGE = 30; // expressed in meters
+          const double MAX_SPEED = 49.5; // expressed in miles per hour
+          const double SPEED_INCREMENT = 0.224; // expressed in miles per hour
+          double ref_vel = 49.5;
 
           size_t prev_size = previous_path_x.size ( );
           if ( prev_size > 0 )
@@ -121,7 +123,7 @@ int main() {
               car_s = end_path_s;
           }
 
-          bool obstacle_too_close = false;
+          bool other_car_too_close = false;
           // check if other cars are close to our car
           for ( size_t i = 0; i < sensor_fusion.size(); i++ )
           {
@@ -140,11 +142,21 @@ int main() {
                   if (other_car_s > car_s && ((other_car_s - car_s) < CLOSE_RANGE ))
                   {
                       // set ref vel to a lower value
-                      ref_vel = 29.5 * MPH_TO_MTSPS;
+                      other_car_too_close = true;
                   }
 
               }
           }
+
+          if (other_car_too_close)
+          {
+              ref_vel -= SPEED_INCREMENT;
+          }
+          else if ( ref_vel < MAX_SPEED)
+          {
+              ref_vel += SPEED_INCREMENT;
+          }
+
 
           std::vector<double> ptsx;
           std::vector<double> ptsy;
@@ -213,7 +225,7 @@ int main() {
           double target_y = fitter ( target_x);
           
           double target_dist = std::sqrt ((target_x*target_x) + (target_y*target_y) );
-          double N = target_dist / ( FRAME_RATE*ref_vel );
+          double N = target_dist / ( FRAME_RATE*ref_vel*MPH_TO_MTSPS );
           double dist_increment = target_x / N;
           double x_offset = 0;
           for ( size_t i = 0; i < 50 - previous_path_x.size(); i++ )

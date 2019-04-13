@@ -7,7 +7,9 @@
 #include "Eigen-3.3/Eigen/QR"
 #include "helpers.h"
 #include "json.hpp"
-
+// my headers
+#include "path_planner.h"
+#include "spline.h"
 // for convenience
 using nlohmann::json;
 using std::string;
@@ -104,8 +106,114 @@ int main() {
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
+          
+          tk::spline fitter;
+          int lane = 1;
+          //cosntants
+          const double FRAME_RATE = 0.02;
+          const double MPH_TO_MTSPS = 1.0/2.24;
+          double ref_vel = 49.5*MPH_TO_MTSPS;
 
+          size_t prev_size = previous_path_x.size ( );
+          if ( prev_size > 0 )
+          {
+              car_s = end_path_s;
+          }
 
+          bool obstacle_too_close = false;
+          for ( size_t i = 0; i < sensor_fusion.size(); i++ )
+          {
+              
+          }
+
+          std::vector<double> ptsx;
+          std::vector<double> ptsy;
+
+          double ref_car_x = car_x;
+          double ref_car_y = car_y;
+          double ref_car_yaw = deg2rad( car_yaw);
+
+          if ( prev_size < 2)
+          {
+              double prev_carx = car_x - std::cos ( ref_car_yaw );
+              double prev_cary = car_y - std::sin ( ref_car_yaw );
+
+              ptsx.push_back (prev_carx );
+              ptsx.push_back ( car_x );
+
+              ptsy.push_back ( prev_cary );
+              ptsy.push_back ( car_y );
+          }
+          else
+          {
+              ref_car_x = previous_path_x [ prev_size - 1 ];
+              ref_car_y = previous_path_y [ prev_size - 1 ];
+
+              double ref_car_prev_x = previous_path_x [ prev_size - 2 ];
+              double ref_car_prev_y = previous_path_y [ prev_size - 2 ];
+              ref_car_yaw = std::atan2 (ref_car_y - ref_car_prev_y,  ref_car_x - ref_car_prev_x );
+
+              ptsx.push_back ( ref_car_prev_x );
+              ptsx.push_back ( ref_car_x );
+
+              ptsy.push_back ( ref_car_prev_y );
+              ptsy.push_back ( ref_car_y );
+          }
+
+          vector<double> wp0 = getXY ( car_s + 30 , ( 2 + 4 * lane ) , map_waypoints_s , map_waypoints_x , map_waypoints_y );
+          vector<double> wp1 = getXY ( car_s + 60 , ( 2 + 4 * lane ) , map_waypoints_s , map_waypoints_x , map_waypoints_y );
+          vector<double> wp2 = getXY ( car_s + 90 , ( 2 + 4 * lane ) , map_waypoints_s , map_waypoints_x , map_waypoints_y );
+
+          ptsx.push_back ( wp0 [ 0 ] );
+          ptsx.push_back ( wp1 [ 0 ] );
+          ptsx.push_back ( wp2 [ 0 ] );
+
+          ptsy.push_back ( wp0 [ 1 ] );
+          ptsy.push_back ( wp1 [ 1 ] );
+          ptsy.push_back ( wp2 [ 1 ] );
+
+          // transform points from map frame to car frame
+          for ( size_t i = 0; i < ptsx.size ( ); i++ )
+          {
+              double tempx = ptsx [ i ] - ref_car_x;
+              double tempy = ptsy [ i ] - ref_car_y;
+
+              ptsx [ i ] = tempx * cos ( -ref_car_yaw ) - tempy * sin ( -ref_car_yaw );
+              ptsy [ i ] = tempx * sin ( -ref_car_yaw ) + tempy * cos ( -ref_car_yaw );
+          }
+
+          fitter.set_points (ptsx, ptsy );
+
+          // insert previous path points into the curren trajectory
+          next_x_vals.insert ( next_x_vals.end ( ) , previous_path_x.begin ( ) , previous_path_x.end ( ) );
+          next_y_vals.insert ( next_y_vals.end ( ) , previous_path_y.begin ( ) , previous_path_y.end ( ) );
+
+          //  compute target points from fitted polynomial
+          double target_x = 30;
+          double target_y = fitter ( target_x);
+          
+          double target_dist = std::sqrt ((target_x*target_x) + (target_y*target_y) );
+          double N = target_dist / ( FRAME_RATE*ref_vel );
+          double dist_increment = target_x / N;
+          double x_offset = 0;
+          for ( size_t i = 0; i < 50 - previous_path_x.size(); i++ )
+          {
+              // point in local vehicle coordinate syste
+              double x_point_vcs = x_offset + dist_increment;
+              double y_point_vcs = fitter (x_point_vcs );
+              x_offset = x_point_vcs; /*save for next iteration*/
+
+              // point in map coordinate system
+              double x_point_mcs = ( x_point_vcs*cos ( ref_car_yaw ) ) - ( y_point_vcs * sin(ref_car_yaw) ) + ref_car_x;
+              double y_point_mcs = ( x_point_vcs*sin ( ref_car_yaw ) ) + ( y_point_vcs * cos ( ref_car_yaw ) ) + ref_car_y;
+
+              // add point to the path sent to sim
+              next_x_vals.push_back ( x_point_mcs );
+              next_y_vals.push_back ( y_point_mcs );
+
+          }
+
+          
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
 

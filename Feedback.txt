@@ -1,0 +1,4 @@
+- Code is not cross compilable in windows
+- huge lack of function doxygen docu (what is each variable, is input , output?)
+- Loopback missing in main function to connect in windows
+- in walkthrough video https://www.youtube.com/watch?time_continue=1371&v=7sI3VHFPP0w minute 45:47 they are predictin S of the other car , and I think there is an error, speed is in miles per hour and s is in meters right? then the formula  check_car_s += double(prev_size*.02*check_speed) is wrong, since speed is in miles per hour, 0.02 is in seconds, and we want check_car_s in meters

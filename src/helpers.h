@@ -154,4 +154,15 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s,
   return {x,y};
 }
 
+bool isCarInMyLane ( double d, int lane )
+{
+    bool output = false;
+    if (d < (2 + 4*lane + 2) && d >(2 + 4*lane  -2 ) )
+    {
+        output = true;
+    }
+    
+    return output;
+}
+
 #endif  // HELPERS_H

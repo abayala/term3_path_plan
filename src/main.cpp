@@ -106,12 +106,13 @@ int main() {
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
-          
+          PathPlanner path_planner;
           tk::spline fitter;
           int lane = 1;
           //cosntants
           const double FRAME_RATE = 0.02;
           const double MPH_TO_MTSPS = 1.0/2.24;
+          const double CLOSE_RANGE = 30;
           double ref_vel = 49.5*MPH_TO_MTSPS;
 
           size_t prev_size = previous_path_x.size ( );
@@ -121,9 +122,28 @@ int main() {
           }
 
           bool obstacle_too_close = false;
+          // check if other cars are close to our car
           for ( size_t i = 0; i < sensor_fusion.size(); i++ )
           {
-              
+              double d = sensor_fusion [ i ] [ 6 ];
+              if (isCarInMyLane(d,lane))
+              {
+                  // if car is in my lane check its speed
+                  double vx = sensor_fusion [ i ] [ 3 ];
+                  double vy = sensor_fusion [ i ] [ 4 ];
+                  double linear_speed = sqrt ( ( vx*vx ) + ( vy*vy ) )* MPH_TO_MTSPS;
+                  // get car position in the lane
+                  double other_car_s = sensor_fusion [ i ] [ 5];
+                  // compensate through time and preditc car_s
+                  other_car_s +=  double ( prev_size ) * FRAME_RATE * linear_speed ;
+                  // if car is closer thatn a certain threshold 
+                  if (other_car_s > car_s && ((other_car_s - car_s) < CLOSE_RANGE ))
+                  {
+                      // set ref vel to a lower value
+                      ref_vel = 29.5 * MPH_TO_MTSPS;
+                  }
+
+              }
           }
 
           std::vector<double> ptsx;

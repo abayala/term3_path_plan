@@ -165,4 +165,15 @@ bool isCarInMyLane ( double d, int lane )
     return output;
 }
 
+int getLane ( double d )
+{
+   return  d/4;
+}
+
+//bool isSafeToChangeLane (std sensor_fus )
+//{
+//    for ()
+//    {
+//    }
+//}
 #endif  // HELPERS_H

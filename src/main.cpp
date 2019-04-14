@@ -108,11 +108,11 @@ int main() {
            */
           PathPlanner path_planner;
           tk::spline fitter;
-          int lane = 1;
+          int lane = getLane(car_d);
           //cosntants
           const double FRAME_RATE = 0.02;
           const double MPH_TO_MTSPS = 1.0/2.24; // factor to transform miles per hour to meters per second
-          const double CLOSE_RANGE = 30; // expressed in meters
+          const double CLOSE_RANGE = 15; // expressed in meters
           const double MAX_SPEED = 49.5; // expressed in miles per hour
           const double SPEED_INCREMENT = 0.224; // expressed in miles per hour
           
@@ -143,6 +143,10 @@ int main() {
                   {
                       // set ref vel to a lower value
                       other_car_too_close = true;
+                      if (lane > 0)
+                      {
+                          lane = 0;
+                      }
                   }
 
               }

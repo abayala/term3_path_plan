@@ -5,10 +5,12 @@
 #include <vector>
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
-#include "helpers.h"
+#include "helpers.hpp"
 #include "json.hpp"
+#include <typeinfo>
+
 // my headers
-#include "path_planner.h"
+#include "path_planner.hpp"
 #include "spline.h"
 // for convenience
 using nlohmann::json;
@@ -24,7 +26,7 @@ int main() {
   vector<double> map_waypoints_s;
   vector<double> map_waypoints_dx;
   vector<double> map_waypoints_dy;
-
+  BehaviouralPLanning::PathPlanner path_planner;
   // Waypoint map to read from
   string map_file_ = "../data/highway_map.csv";
   // The max s value before wrapping around the track back to 0
@@ -50,16 +52,23 @@ int main() {
     map_waypoints_s.push_back(s);
     map_waypoints_dx.push_back(d_x);
     map_waypoints_dy.push_back(d_y);
+
+    path_planner.m_map_waypoints_x.push_back ( x );
+    path_planner.m_map_waypoints_y.push_back ( y );
+    path_planner.m_map_waypoints_s.push_back ( s );
+    
   }
+
+  
 #ifdef _WIN32
   h.onMessage ( [ &map_waypoints_x , &map_waypoints_y , &map_waypoints_s ,
-                &map_waypoints_dx , &map_waypoints_dy ]
+                &map_waypoints_dx , &map_waypoints_dy, &path_planner ]
                 ( uWS::WebSocket<uWS::SERVER>* ws , char *data , size_t length ,
                   uWS::OpCode opCode )
   {
 #else
   h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,
-               &map_waypoints_dx,&map_waypoints_dy]
+               &map_waypoints_dx,&map_waypoints_dy, &path_planner ]
               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                uWS::OpCode opCode) {
 #endif
@@ -96,7 +105,16 @@ int main() {
           // Sensor Fusion Data, a list of all other cars on the same side 
           //   of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
-
+         
+          path_planner.process_data ( j [ 1 ] [ "x" ] ,
+                                      j [ 1 ] [ "y" ] ,
+                                      j [ 1 ] [ "s" ] ,
+                                      j [ 1 ] [ "d" ] ,
+                                      j [ 1 ] [ "yaw" ] ,
+                                      j [ 1 ] [ "speed" ] ,
+                                      j [ 1 ] [ "previous_path_x" ] , j [ 1 ] [ "previous_path_y" ] ,
+                                      j [ 1 ] [ "end_path_s" ] , j [ 1 ] [ "end_path_d" ] ,
+                                      j [ 1 ] [ "sensor_fusion" ] );
           json msgJson;
 
           vector<double> next_x_vals;
@@ -106,9 +124,9 @@ int main() {
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
-          PathPlanner path_planner;
+         
           tk::spline fitter;
-          int lane = getLane(car_d);
+          int lane = getLaneId(car_d);
           //cosntants
           const double FRAME_RATE = 0.02;
           const double MPH_TO_MTSPS = 1.0/2.24; // factor to transform miles per hour to meters per second
@@ -124,11 +142,12 @@ int main() {
           }
 
           bool other_car_too_close = false;
+          std::vector<std::vector <double>> sens = sensor_fusion;
           // check if other cars are close to our car
           for ( size_t i = 0; i < sensor_fusion.size(); i++ )
           {
               double d = sensor_fusion [ i ] [ 6 ];
-              if (isCarInMyLane(d,lane))
+              if (isCarInLane(d,lane))
               {
                   // if car is in my lane check its speed
                   double vx = sensor_fusion [ i ] [ 3 ];

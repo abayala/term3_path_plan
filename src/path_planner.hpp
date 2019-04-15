@@ -6,8 +6,8 @@ namespace BehaviouralPLanning
     //constants
     const double FRAME_RATE = 0.02;
     const double MPH_TO_MTSPS = 1.0 / 2.24; // factor to transform miles per hour to meters per second
-    const double CLOSE_RANGE = 30; // expressed in meters
-    const double DANGEROUS_DTC = 2;
+    const double CLOSE_RANGE = 15; // expressed in meters
+    const double DANGEROUS_DTC = 5;
     const double DESIRED_SPEED = 49.5; // expressed in miles per hour
     const int MAX_LANE_ID = 2;
     const int MIN_LANE_ID = 0;
@@ -34,7 +34,7 @@ namespace BehaviouralPLanning
         bool m_other_car_too_close;
         e_possible_states m_state;
         s_trajectory m_trajectory;
-
+        // Load up map values for waypoint's x,y,s and d normalized normal vectors
         std::vector<double> m_map_waypoints_x;
         std::vector<double> m_map_waypoints_y;
         std::vector<double> m_map_waypoints_s;

@@ -48,13 +48,15 @@ namespace BehaviouralPLanning
 
     double PathPlanner::compute_cost( e_possible_states state_to_check )
     {
-        double cost = 1000;
+        double cost = 1.0;
        
         std::vector<double> other_cars_pred_s = predict_obstacles_s( );
         if ( KL == state_to_check)
         {
-            double vel_diff =  DESIRED_SPEED - m_ref_velocity ;
-            cost = 1.0 / (1.0+ std::exp(-(vel_diff*vel_diff) ) ) ;
+            double vel_diff =  (DESIRED_SPEED - m_ref_velocity)/DESIRED_SPEED ;
+            //cost = 1.0 / (1.0+ std::exp(-(vel_diff*vel_diff) ) ) ;
+            cost = vel_diff;
+
         }
         else 
         {
@@ -91,22 +93,30 @@ namespace BehaviouralPLanning
 
             if( desired_lane_set)
             {
-                double min_DTC = 1000.0;
                 for( size_t i = 0; i < m_sensor_fusion.size( ); i++ )
                 {
                     if( isCarInLane( m_sensor_fusion[ i ][ e_sensor_fus_indexes::D ], desired_lane ) )
                     {
-                        double DTC = other_cars_pred_s[ i ] - m_car_s;
-                        if( abs( DTC ) <= DANGEROUS_DTC )
+                        double DTC = std::abs(other_cars_pred_s[ i ]) - std::abs( m_car_s);
+                        if( abs( DTC ) <= CLOSE_RANGE )
                         {
                             cost = 1.0;
                             break;
                         }
                         // if car is closer than a certain threshold 
-                        else  if( other_cars_pred_s[ i ] > m_car_s && ( DTC < CLOSE_RANGE + 5 ) && DTC < min_DTC )
+                        else  if( other_cars_pred_s[ i ] > m_car_s && ( DTC <= CLOSE_RANGE )  )
                         {
-                            cost = 1.0 - std::exp( -( 1.0 / DTC ) );
-                            min_DTC = DTC;
+                           double current_cost = 1.0 - DTC / ( CLOSE_RANGE );
+                            if( current_cost > cost )
+                            {
+                              
+                                cost = current_cost;
+                            }
+                            
+                        }
+                        else 
+                        {
+                            cost =0.1;
                         }
                     }
                 }
@@ -159,7 +169,7 @@ namespace BehaviouralPLanning
         else if (LCR == next_state)
         {
             lane = m_current_lane + 1;
-            m_state = LCL;
+            m_state = LCR;
         }
         
         double ref_car_x = m_car_x;

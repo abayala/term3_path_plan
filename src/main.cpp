@@ -16,16 +16,10 @@
 using nlohmann::json;
 using std::string;
 using std::vector;
-double ref_vel = 0;
 int main() {
   uWS::Hub h;
 
-  // Load up map values for waypoint's x,y,s and d normalized normal vectors
-  vector<double> map_waypoints_x;
-  vector<double> map_waypoints_y;
-  vector<double> map_waypoints_s;
-  vector<double> map_waypoints_dx;
-  vector<double> map_waypoints_dy;
+  //create object that will handle all path planning tasks
   BehaviouralPLanning::PathPlanner path_planner;
   // Waypoint map to read from
   string map_file_ = "../data/highway_map.csv";

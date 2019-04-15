@@ -98,7 +98,7 @@ namespace BehaviouralPLanning
                     if( isCarInLane( m_sensor_fusion[ i ][ e_sensor_fus_indexes::D ], desired_lane ) )
                     {
                         double DTC = std::abs(other_cars_pred_s[ i ]) - std::abs( m_car_s);
-                        if( abs( DTC ) <= CLOSE_RANGE )
+                        if( abs( DTC ) <= CLOSE_RANGE/2  )
                         {
                             cost = 1.0;
                             break;

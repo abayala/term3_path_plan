@@ -6,7 +6,7 @@ namespace BehaviouralPLanning
     //constants
     const double FRAME_RATE = 0.02;
     const double MPH_TO_MTSPS = 1.0 / 2.24; // factor to transform miles per hour to meters per second
-    const double CLOSE_RANGE = 15; // expressed in meters
+    const double CLOSE_RANGE = 30; // expressed in meters
     const double DANGEROUS_DTC = 5;
     const double DESIRED_SPEED = 49.5; // expressed in miles per hour
     const int MAX_LANE_ID = 2;
@@ -50,7 +50,6 @@ namespace BehaviouralPLanning
 
         e_possible_states choose_next_state ( );
         void execute_next_state ( e_possible_states next_state );
-        void compute_trajectory ( );
         void process_data ( double car_x , double car_y, double car_s, double car_d, double car_yaw,double car_speed,
                             std::vector<double> previous_path_x, std::vector<double> previous_path_y,
                             double end_path_s, double end_path_d, std::vector<std::vector <double>> sensor_fusion );

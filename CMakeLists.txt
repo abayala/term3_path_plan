@@ -8,7 +8,7 @@ set(CXX_FLAGS "-Wall")
 set(CMAKE_CXX_FLAGS, "${CXX_FLAGS}")
 #file(GLOB_RECURSE sources src/*.cpp)
 include_directories(src)
-set (sources src/main.cpp src/path_planner.cpp)
+set (sources src/main.cpp src/path_planner.cpp src/helpers.cpp)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin") 
 
@@ -24,7 +24,8 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 add_executable(path_planning ${sources})
 
 if(WIN32)
-    target_link_libraries(path_planning uWS)
+target_link_libraries(path_planning z ssleay32 uv uWS)
+   # target_link_libraries(path_planning uWS)
 else(WIN32)
    target_link_libraries(path_planning z ssl uv uWS)
 endif(WIN32)

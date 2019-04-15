@@ -10,6 +10,7 @@
 #include <vector>
 #include <algorithm>
 
+double pi( );
 std::string hasData ( std::string s );
 double deg2rad ( double x );
 double rad2deg ( double x );

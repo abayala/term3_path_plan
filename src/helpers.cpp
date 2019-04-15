@@ -21,7 +21,7 @@ std::string hasData( std::string s) {
 //
 
 // For converting back and forth between radians and degrees.
-constexpr double pi() { return M_PI; }
+double pi() { return M_PI; }
 double deg2rad(double x) { return x * pi() / 180; }
 double rad2deg(double x) { return x * 180 / pi(); }
 
@@ -137,7 +137,7 @@ std::vector<double> getXY(double s, double d, const std::vector<double> &maps_s,
   double seg_x = maps_x[prev_wp]+seg_s*cos(heading);
   double seg_y = maps_y[prev_wp]+seg_s*sin(heading);
 
-  double perp_heading = heading-pi()/2;
+  double perp_heading = heading- pi()/2;
 
   double x = seg_x + d*cos(perp_heading);
   double y = seg_y + d*sin(perp_heading);
@@ -161,4 +161,3 @@ int getLaneId ( double d )
    return  d/4;
 }
 
-#endif  // HELPERS_H

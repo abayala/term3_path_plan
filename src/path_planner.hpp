@@ -6,8 +6,7 @@ namespace BehaviouralPLanning
     //constants
     const double FRAME_RATE = 0.02;
     const double MPH_TO_MTSPS = 1.0 / 2.24; // factor to transform miles per hour to meters per second
-    const double CLOSE_RANGE = 30; // expressed in meters
-    const double DANGEROUS_DTC = 5;
+    const double CLOSE_RANGE = 20; // expressed in meters
     const double DESIRED_SPEED = 49.5; // expressed in miles per hour
     const int MAX_LANE_ID = 2;
     const int MIN_LANE_ID = 0;

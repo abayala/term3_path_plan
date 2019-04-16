@@ -53,9 +53,17 @@ namespace BehaviouralPLanning
         std::vector<double> other_cars_pred_s = predict_obstacles_s( );
         if ( KL == state_to_check)
         {
-            double vel_diff =  (DESIRED_SPEED - m_ref_velocity)/DESIRED_SPEED ;
-            //cost = 1.0 / (1.0+ std::exp(-(vel_diff*vel_diff) ) ) ;
-            cost = vel_diff;
+            if ( m_other_car_too_close )
+            {
+                cost = 1.0;
+            }
+            else
+            {
+                double vel_diff = ( DESIRED_SPEED - m_ref_velocity ) / DESIRED_SPEED;
+                //cost = 1.0 / (1.0+ std::exp(-(vel_diff*vel_diff) ) ) ;
+                cost = 0.0;
+            }
+            
 
         }
         else 

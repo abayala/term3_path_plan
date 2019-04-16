@@ -6,14 +6,17 @@ namespace BehaviouralPLanning
     //constants
     const double FRAME_RATE = 0.02;
     const double MPH_TO_MTSPS = 1.0 / 2.24; // factor to transform miles per hour to meters per second
-    const double CLOSE_RANGE = 20; // expressed in meters
+    const double CLOSE_RANGE = 30; // expressed in meters
     const double DESIRED_SPEED = 49.5; // expressed in miles per hour
+    const double MAX_S= 6945.554;// The max s value before wrapping around the track back to 0
     const int MAX_LANE_ID = 2;
     const int MIN_LANE_ID = 0;
+    const double LANE_WIDTH = 4;
+    const double LANE_CENTER_D = LANE_WIDTH / 2;
 
     const double SPEED_INCREMENT = 0.224; // expressed in miles per hour
 
-    enum e_possible_states { KL,  LCL,  LCR };
+    enum e_possible_states { KL,  PLC, LC };
     enum e_sensor_fus_indexes {ID=0,X_COOR,Y_COOR, VX,VY,S,D };
     struct s_trajectory 
     {
@@ -27,11 +30,15 @@ namespace BehaviouralPLanning
     public: 
         PathPlanner ( );
         ~PathPlanner ( );
-        //member declarations
+    /************************************************************************/
+    /* class members declarations                                           */
+    /************************************************************************/
         int m_current_lane;
+        int m_target_lane;
+        bool m_target_lane_set;
         double m_ref_velocity;
         bool m_other_car_too_close;
-        e_possible_states m_state;
+        e_possible_states m_current_state;
         s_trajectory m_trajectory;
         // Load up map values for waypoint's x,y,s and d normalized normal vectors
         std::vector<double> m_map_waypoints_x;
@@ -42,17 +49,45 @@ namespace BehaviouralPLanning
         std::vector<double> m_achor_points_y;
 
      
+        /************************************************************************/
+        /*function declarations                                                */
+        /************************************************************************/
 
-        //function declartions
-        std::vector<e_possible_states> successor_states ( );
-        double compute_cost ( e_possible_states state_to_check );
-
-        e_possible_states choose_next_state ( );
+        /**
+        /* \fn:    		compute_cost_lane_change
+        /* \brief:      Computes from 0 to 1 the cost of changing to the target lane
+        /* \parameter:	target_lane
+        /* \returns:	double
+        */
+        double compute_cost_lane_change(int target_lane );
+        
+        /**
+        /* \fn:    		choose_next_state
+        /* \brief:      Taking into account the current state, it will determine which state is best to change to
+        /* \returns:	BehaviouralPLanning::e_possible_states
+        */
+        e_possible_states choose_next_state( );
+        /**
+        /* \fn:    		execute_next_state
+        /* \brief:      Performs state change, and trajectory computation
+        /* \parameter:	next_state
+        /* \returns:	void
+        */
         void execute_next_state ( e_possible_states next_state );
+        /**
+        /* \fn:    		process_data
+        /* \brief:      Main input for the class, it performs one cycle for th einput data
+        /* \returns:	void
+        */
         void process_data ( double car_x , double car_y, double car_s, double car_d, double car_yaw,double car_speed,
                             std::vector<double> previous_path_x, std::vector<double> previous_path_y,
                             double end_path_s, double end_path_d, std::vector<std::vector <double>> sensor_fusion );
         
+        /**
+        /* \fn:    		predict_obstacles_s
+        /* \brief:      predicts the position of the vehicles in sensor fusion array
+        /* \returns:	std::vector<double>
+        */
         std::vector<double> predict_obstacles_s( );
        
     private:

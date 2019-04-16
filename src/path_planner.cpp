@@ -11,8 +11,9 @@ namespace BehaviouralPLanning
         m_trajectory.next_ptsy.clear ( );
         m_current_lane = 1;
         m_ref_velocity = 0.0;
-        m_state = KL;
+        m_current_state = KL;
         m_other_car_too_close = false;
+        m_target_lane_set = false;
     }
 
     PathPlanner::~PathPlanner ( )
@@ -20,165 +21,160 @@ namespace BehaviouralPLanning
 
     }
 
-    std::vector<e_possible_states> PathPlanner::successor_states ( )
-    {
-        std::vector<e_possible_states> succ_states;
-        if ( KL == m_state )
-        {
-            succ_states.push_back ( KL );
-            if ( m_other_car_too_close )
-            {
-                succ_states.push_back ( LCL );
-                succ_states.push_back ( LCR );
+    
 
-            }
+    double PathPlanner::compute_cost_lane_change( int target_lane ) {
+
+        double out_cost = 0.0;
+        // We shall not overtake if the target lane is outside the boundaries of the road
+        if( target_lane > MAX_LANE_ID || target_lane < MIN_LANE_ID )
+        {
+            out_cost = 1.0;
         }
-        else if ( LCL == m_state )
+        else
         {
-            succ_states.push_back ( LCL );
-            succ_states.push_back ( KL );
-        }
-        else if ( LCR == m_state )
-        {
-            succ_states.push_back ( LCR );
-            succ_states.push_back ( KL );
-        }
-        return succ_states;
-    }
-
-    double PathPlanner::compute_cost( e_possible_states state_to_check )
-    {
-        double cost = 1.0;
-       
-        std::vector<double> other_cars_pred_s = predict_obstacles_s( );
-        if ( KL == state_to_check)
-        {
-            if ( m_other_car_too_close )
+            // predict position of other vehicles around me
+            std::vector<double> other_cars_pred_s = predict_obstacles_s( );
+            for( size_t i = 0; i < m_sensor_fusion.size( ); i++ )
             {
-                cost = 1.0;
-            }
-            else
-            {
-                double vel_diff = ( DESIRED_SPEED - m_ref_velocity ) / DESIRED_SPEED;
-                //cost = 1.0 / (1.0+ std::exp(-(vel_diff*vel_diff) ) ) ;
-                cost = 0.0;
-            }
-            
-
-        }
-        else 
-        {
-            int desired_lane ;
-            bool desired_lane_set = false;
-            if( LCL == state_to_check )
-            {
-                if( m_current_lane <= MIN_LANE_ID )
+                //check if vehicle is in desired target lane
+                if( isCarInLane( m_sensor_fusion[ i ][ e_sensor_fus_indexes::D ], target_lane ) )
                 {
-                    cost = 1.0;
-                }
-                else
-                {
-                    //check if there is car on the left lane
-                     desired_lane = m_current_lane - 1;
-                     desired_lane_set = true;
-
-                }
-            }
-            else if( LCR == state_to_check )
-            {
-                if( m_current_lane >= MAX_LANE_ID )
-                {
-                    cost = 1.0;
-                }
-                else
-                {
-                    //check if there is car on the right lane
-                     desired_lane = m_current_lane + 1;
-                     desired_lane_set = true;
-
-                }
-            }
-
-            if( desired_lane_set)
-            {
-                for( size_t i = 0; i < m_sensor_fusion.size( ); i++ )
-                {
-                    if( isCarInLane( m_sensor_fusion[ i ][ e_sensor_fus_indexes::D ], desired_lane ) )
+                    // check how far is the other car from me
+                    double DTC = std::abs( other_cars_pred_s[ i ] ) - std::abs( m_car_s );
+                    //if car is in a critical distance from my car
+                    if( abs( DTC ) <= CLOSE_RANGE / 2 )
                     {
-                        double DTC = std::abs(other_cars_pred_s[ i ]) - std::abs( m_car_s);
-                        if( abs( DTC ) <= CLOSE_RANGE/2  )
-                        {
-                            cost = 1.0;
-                            break;
-                        }
-                        // if car is closer than a certain threshold 
-                        else  if( other_cars_pred_s[ i ] > m_car_s && ( DTC <= CLOSE_RANGE )  )
-                        {
-                           double current_cost = 1.0 - DTC / ( CLOSE_RANGE );
-                            if( current_cost > cost )
-                            {
-                              
-                                cost = current_cost;
-                            }
-                            
-                        }
-                        else 
-                        {
-                            cost =0.1;
-                        }
+                        out_cost = 1.0;
+                        break;
                     }
+                    // if car is closer than a certain threshold 
+                    else  if( other_cars_pred_s[ i ] > m_car_s && ( DTC <= CLOSE_RANGE ) )
+                    {
+                        double current_cost = 1.0 ;
+                        //output the highest cost 
+                        if( current_cost > out_cost )
+                        {
+
+                            out_cost = current_cost;
+                        }
+
+                    }
+                 
                 }
+
             }
-
         }
 
-        return cost;
+        return out_cost;
     }
 
-    e_possible_states PathPlanner::choose_next_state ( )
-    {
-        e_possible_states out_next_state;
+    
+    BehaviouralPLanning::e_possible_states PathPlanner::choose_next_state()
+{
 
-        // get a list of succesor states
-
-        std::vector<e_possible_states> next_states = successor_states ( );
-        std::vector<double> costs;
-
-        for ( size_t i = 0; i < next_states.size ( ); i++ )
+        e_possible_states out_next_state = KL;
+        switch( m_current_state )
         {
-            double option_cost = compute_cost ( next_states.at ( i ) );
-            costs.push_back( option_cost );
+            case BehaviouralPLanning::KL:
+                if( m_other_car_too_close )
+                {
+                    out_next_state = PLC;
+                }
+                else
+                {
+                    out_next_state = KL;
+                }
+                break;
+            case BehaviouralPLanning::LC:
+                if( m_target_lane_set &&
+                    m_current_lane == m_target_lane && 
+                    ( 0.5 < ( LANE_CENTER_D - std::abs( double( int( m_car_d ) % int( LANE_WIDTH ) ) ) ) ) 
+                    )
+                {
+                    out_next_state = KL;
+                }
+                else
+                {
+                    out_next_state = LC;
+                }
+                break;
+            case BehaviouralPLanning::PLC:
+            {
+                double cost_LCL, cost_LCR, cost_KL;
+                std::vector<double> costs;
+
+                cost_LCL = compute_cost_lane_change( m_current_lane - 1 );
+                cost_LCR = compute_cost_lane_change( m_current_lane + 1 );
+                cost_KL = 1 / ( cost_LCR + cost_LCL + 0.0000000001 );
+
+                costs.push_back( cost_LCL );
+                costs.push_back( cost_LCR );
+                costs.push_back( cost_KL );
+
+
+
+                std::vector<double>::iterator best_cost = std::min_element( costs.begin( ), costs.end( ) );
+
+                int best_idx = std::distance( costs.begin( ), best_cost );
+
+                switch( best_idx )
+                {
+                    case 0:
+                        out_next_state = LC;
+                        m_target_lane = m_current_lane - 1;
+                        m_target_lane_set = true;
+                        break;
+                    case 1:
+                        out_next_state = LC;
+                        m_target_lane = m_current_lane + 1;
+                        m_target_lane_set = true;
+                        break;
+                    
+                    case 2:
+                        out_next_state = KL;
+                        m_target_lane_set = false;
+
+                    default:
+                        break;
+                }
+
+
+            }
+                break;
+            default:
+                break;
         }
 
-        std::vector<double>::iterator best_cost = std::min_element(costs.begin(), costs.end ()  );
-
-        int best_idx = std::distance( costs.begin( ), best_cost );
-
-        out_next_state = next_states[ best_idx ];
         return out_next_state;
-
     }
 
-    void PathPlanner::execute_next_state ( e_possible_states next_state )
+    void PathPlanner::execute_next_state( e_possible_states next_state )
     {
         int lane;
         m_trajectory.next_ptsx.clear( );
         m_trajectory.next_ptsy.clear( );
-        if (KL == next_state)
+        switch( next_state )
         {
-            lane = m_current_lane;
-            m_state = KL;
+            case BehaviouralPLanning::KL:
+                lane = m_current_lane;
+                m_current_state = KL;
+                m_target_lane_set = false;
+                break;
+          
+            case BehaviouralPLanning::PLC:
+                lane = m_current_lane;
+                m_current_state = PLC;
+                break;
+            case LC:
+                lane = m_target_lane;
+                m_current_state = LC;
+                break;
+            default:
+                break;
         }
-        else if (LCL == next_state)
-        {
-            lane = m_current_lane - 1;
-            m_state = LCL;
-        }
-        else if (LCR == next_state)
-        {
-            lane = m_current_lane + 1;
-            m_state = LCR;
-        }
+      
+
         
         double ref_car_x = m_car_x;
         double ref_car_y = m_car_y;
@@ -214,9 +210,24 @@ namespace BehaviouralPLanning
             m_achor_points_y.push_back( ref_car_y );
         }
 
-        std::vector<double> wp0 = getXY( m_car_s + 30, ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
-        std::vector<double> wp1 = getXY( m_car_s + 60, ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
-        std::vector<double> wp2 = getXY( m_car_s + 90, ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
+        double s_1 = m_car_s + 30;
+        double  s_2 = m_car_s + 60;
+        double  s_3 = m_car_s + 90;
+        if (s_1 > m_map_waypoints_s[ m_map_waypoints_s .size ()-1] )
+        {
+            s_1 = std::abs(MAX_S-s_1);
+        }
+        if( s_2 >  m_map_waypoints_s[ m_map_waypoints_s.size( ) - 1 ] )
+        {
+            s_2 = std::abs(MAX_S- s_2);
+        }
+        if( s_3 >  m_map_waypoints_s[ m_map_waypoints_s.size( ) - 1 ] )
+        {
+            s_3 = std::abs (MAX_S-s_3);
+        }
+        std::vector<double> wp0 = getXY(s_1, ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
+        std::vector<double> wp1 = getXY(s_2 , ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
+        std::vector<double> wp2 = getXY(s_3, ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
 
         m_achor_points_x.push_back( wp0[ 0 ] );
         m_achor_points_x.push_back( wp1[ 0 ] );
@@ -302,7 +313,7 @@ namespace BehaviouralPLanning
         // check if other cars are close to our car
         for ( size_t i = 0; i < m_sensor_fusion.size ( ); i++ )
         {
-            double d = m_sensor_fusion [ i ] [ 6 ];
+            double d = m_sensor_fusion [ i ] [ e_sensor_fus_indexes::D ];
             if ( isCarInLane ( d , m_current_lane ) )
             {
                 // if car is in my lane check its speed
@@ -310,7 +321,7 @@ namespace BehaviouralPLanning
                 double vy = m_sensor_fusion [ i ] [ 4 ];
                 double linear_speed = sqrt ( ( vx*vx ) + ( vy*vy ) )* MPH_TO_MTSPS;
                 // get car position in the lane
-                double other_car_s = sensor_fusion [ i ] [ 5 ];
+                double other_car_s = sensor_fusion [ i ] [ e_sensor_fus_indexes::S ];
                 // compensate through time and preditc car_s
                 other_car_s += double ( prev_size ) * FRAME_RATE * linear_speed;
                 // if car is closer thatn a certain threshold 
@@ -323,15 +334,17 @@ namespace BehaviouralPLanning
 
             }
         }
-
-        if ( m_other_car_too_close )
-        {
-            m_ref_velocity -= SPEED_INCREMENT;
-        }
-        else if ( m_ref_velocity < DESIRED_SPEED )
-        {
-            m_ref_velocity += SPEED_INCREMENT;
-        }
+       
+            if( m_other_car_too_close )
+            {
+                m_ref_velocity -= SPEED_INCREMENT *( m_ref_velocity/ DESIRED_SPEED );
+            }
+            else if( m_ref_velocity < DESIRED_SPEED )
+            {
+                m_ref_velocity += SPEED_INCREMENT;
+            }
+        
+      
 
         e_possible_states next_sate = choose_next_state ( );
         execute_next_state( next_sate );

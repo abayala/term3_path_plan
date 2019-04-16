@@ -23,8 +23,7 @@ int main() {
   BehaviouralPLanning::PathPlanner path_planner;
   // Waypoint map to read from
   string map_file_ = "../data/highway_map.csv";
-  // The max s value before wrapping around the track back to 0
-  double max_s = 6945.554;
+ 
 
   std::ifstream in_map_(map_file_.c_str(), std::ifstream::in);
 
@@ -54,7 +53,7 @@ int main() {
                   uWS::OpCode opCode )
   {
 #else
-  h.onMessage([ &path_planner ]
+  h.onMessage([ &path_planner]
               (uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                uWS::OpCode opCode) {
 #endif
@@ -71,16 +70,20 @@ int main() {
         string event = j[0].get<string>();
         
         if (event == "telemetry") {
-                   
+         
+            double  car_s = j[ 1 ][ "s" ];
+            double end_s = j[ 1 ][ "end_path_s" ];
+
+          
          // Process input data
           path_planner.process_data ( j [ 1 ] [ "x" ] ,
                                       j [ 1 ] [ "y" ] ,
-                                      j [ 1 ] [ "s" ] ,
+                                      car_s,
                                       j [ 1 ] [ "d" ] ,
                                       j [ 1 ] [ "yaw" ] ,
                                       j [ 1 ] [ "speed" ] ,
                                       j [ 1 ] [ "previous_path_x" ] , j [ 1 ] [ "previous_path_y" ] ,
-                                      j [ 1 ] [ "end_path_s" ] , j [ 1 ] [ "end_path_d" ] ,
+                                      end_s , j [ 1 ] [ "end_path_d" ] ,
                                       j [ 1 ] [ "sensor_fusion" ] );
           json msgJson;
 

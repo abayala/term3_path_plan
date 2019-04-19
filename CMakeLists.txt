@@ -22,10 +22,4 @@ endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 
 add_executable(path_planning ${sources})
-
-if(WIN32)
 target_link_libraries(path_planning z ssleay32 uv uWS)
-   # target_link_libraries(path_planning uWS)
-else(WIN32)
-   target_link_libraries(path_planning z ssl uv uWS)
-endif(WIN32)

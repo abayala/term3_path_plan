@@ -3,6 +3,7 @@
 #include <iterator>
 #include <algorithm>
 #include "spline.h"
+#include <iostream>
 namespace BehaviouralPLanning
 {
     PathPlanner::PathPlanner ( )
@@ -43,7 +44,9 @@ namespace BehaviouralPLanning
                     // check how far is the other car from me
                     double DTC = std::abs( other_cars_pred_s[ i ] ) - std::abs( m_car_s );
                     //if car is in a critical distance from my car
-                    if( abs( DTC ) <= CLOSE_RANGE / 2 )
+//                    if( abs( DTC ) <= CLOSE_RANGE / 2 )
+                    if ( abs ( DTC ) <= CLOSE_RANGE  )
+
                     {
                         out_cost = 1.0;
                         break;
@@ -210,10 +213,21 @@ namespace BehaviouralPLanning
             m_achor_points_y.push_back( ref_car_y );
         }
 
-        double s_1 = (int)(m_car_s + 30)% (int) m_map_waypoints_s[ m_map_waypoints_s.size()-1 ];
-        double  s_2 = (int)(m_car_s + 60)% (int) m_map_waypoints_s[ m_map_waypoints_s.size( ) - 1 ];
-        double  s_3 = (int)(m_car_s + 90)% (int) m_map_waypoints_s[ m_map_waypoints_s.size( ) - 1 ];
-       
+
+
+
+        double s_1 = (m_car_s + 30);
+        double  s_2 =(m_car_s + 60) ;
+        double  s_3 =(m_car_s + 90) ;
+        if (s_1 > m_map_waypoints_s [ m_map_waypoints_s.size ( ) - 1 ] ||
+             s_2 > m_map_waypoints_s [ m_map_waypoints_s.size ( ) - 1 ] ||
+             s_3 > m_map_waypoints_s [ m_map_waypoints_s.size ( ) - 1 ] )
+        {
+            std::cout << "compensated s , with s1 = " << s_1 << " s_2= " << s_2 << " s3= " << s_3 << std::endl;
+            s_1 = 30;
+            s_2 = 60;
+            s_3 = 90;
+        }
         std::vector<double> wp0 = getXY(s_1, ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
         std::vector<double> wp1 = getXY(s_2 , ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
         std::vector<double> wp2 = getXY(s_3, ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );

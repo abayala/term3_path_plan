@@ -7,8 +7,7 @@ namespace BehaviouralPLanning
     const double REFRESH_RATE = 0.02;
     const double MPH_TO_MTSPS = 1.0 / 2.24; // factor to transform miles per hour to meters per second
     const double CLOSE_RANGE = 30; // expressed in meters
-    const double DESIRED_SPEED = 49.5; // expressed in miles per hour
-    const double MAX_S= 6945.554;// The max s value before wrapping around the track back to 0
+    const double MAX_DESIRED_SPEED = 49.5; // expressed in miles per hour
     const int MAX_LANE_ID = 2;
     const int MIN_LANE_ID = 0;
     const double LANE_WIDTH = 4;

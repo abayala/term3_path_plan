@@ -58,9 +58,8 @@ the path has processed since last time.
 
 ## Development
 
-To tackle this problem I decided to implement a Finite State Machine (FSM) encapsulated in a class called PathPlanner inside the namespace BehaviouralPLanning, this can be find in the files src/path_planner.hpp and src/path_planner.cpp 
-
-The FSM consists of 3 states :
+### Explanation of Logic Used
+To tackle this problem I decided to implement a Finite State Machine (FSM) that consists of 3 states :
 
 * Keep Lane (KL):
     - Description: In this state the car must stay in the current lane
@@ -68,8 +67,34 @@ The FSM consists of 3 states :
     - Conditions to change state : If a car in the current lane is closer than 30 meters then the system shall change to Prepare Lane Change state, otherwise keep in KL.
 
 * Prepare Lane Change (PLC) :
-    - Description : This state is in charge of looking at other vehicles in the right and left lane, to determine if is possible to change lane and choose the best lane to change.
-    - Possible statest to change: KL, 
-    
+    - Description : This state is in charge of looking at other vehicles in the right and left lane, this with the purpose to determine if is possible to change lane safely and choose the best lane to change.
+    - Possible states to change: KL,LC
+    - Conditions to change state: If is possible to move to the right or to the left lane, check in the available lanes if there are no cars 30 mts in front of my position and 30 mts behind my position. If one of the lane fits the criteria, set the lane as target lane for Lane Change state. If no lane fits criteria, move to KL state
+                
+* Lane Change (LC):
+    - Description : This state will be in charged of monitoring and performing a lane change to the target lane defined in PLC
+    - Possible state to change : KL, LC 
+    - Conditions to change state : If the car is less than 0.5 mts from the center of target lane, then it shall change to KL, otherwise continue in LC state
+ 
+ 
+ The reference velocity is monitored at all times, if needed is modified to avoid hitting cars and maintain it the correct limits.  
+ To avoid overpassing the allowed threshold for max acceleration and jerk, increments of 0.224 are added to the reference velocity till the max limit ( MAX_DESIRED_SPEED = 49.5 mph) is reached.
+ When a car is too close in my current lane in front of me (less than 30 mts), then the reference velocity is decreased proportionally to my current speed using the next formula with a max magnitude of 0.224 mph
+
+~~~~
+ m_ref_velocity -= SPEED_INCREMENT *( m_ref_velocity / MAX_DESIRED_SPEED );
+~~~~ 
+ 
+ The closest the ref_velocity is to the max MAX_DESIRED_SPEED it will be decremented more, the slower we travel the less velocity is decremented. This approach helps to maximize the time we go at faster speeds and to not slow down too much when we want to change lanes.
+ 
+ ### Explanation of implementation
+ 
+ The FSM implementation is contained in the class called PathPlanner inside the namespace BehaviouralPLanning, this can be found in the files src/path_planner.hpp and src/path_planner.cpp
+ 
+ The main entry point which is called in main.cpp  is PathPlanner::process_data(...). This function receives as input all the simulator data and if necessary stores it in class member variables. With the vehicle d position it computes the current lane id, to then process the sensor fusion data and determine if there are cars too close in the current lane. 
+ The velocity in vx and vy from the other cars is used to compute the linear speed and compensate their displacement in S relative to the refresh rate of the data and the previous path elements. 
+ If any of the cars is within the range of less than 30 mts in front of the current position then a flag is activated. 
+ This flag is monitored to increase or decresa the ref_velocity.
+ 
  
 

@@ -315,9 +315,9 @@ namespace BehaviouralPLanning
 
         if( m_other_car_too_close )
         {
-            m_ref_velocity -= SPEED_INCREMENT *( m_ref_velocity / DESIRED_SPEED );
+            m_ref_velocity -= SPEED_INCREMENT *( m_ref_velocity / MAX_DESIRED_SPEED );
         }
-        else if( m_ref_velocity < DESIRED_SPEED )
+        else if( m_ref_velocity < MAX_DESIRED_SPEED )
         {
             m_ref_velocity += SPEED_INCREMENT;
         }

@@ -98,8 +98,140 @@ To tackle this problem I decided to implement a Finite State Machine (FSM) that 
  
  After the vehicle velocity and other vehicles positions are monitored, then the function  BehaviouralPLanning::e_possible_states PathPlanner::choose_next_state( ) is called, and contains the main logic of the FSM. It goes through all the cases and states described in the section before to select the state with the least cost and returns it.
 
-Once a next state is chosen, the function  
- 
- 
- 
+Once a next state is chosen, the function   void PathPlanner::execute_next_state( e_possible_states next_state ) is called, which contains the main code to generate the trajectory to be send to the simulator. My implementation is mainly based from the class material, and follows the next sequences:
 
+*  The local variable lane is later used to generate trajectory points and is set depending on the next state to execute, depending on the state other variables are set or resetted
+
+~~~~
+  switch( next_state )
+        {
+            case BehaviouralPLanning::KL:
+                lane = m_current_lane;
+                m_current_state = KL;
+                m_target_lane_set = false;
+                break;
+
+            case BehaviouralPLanning::PLC:
+                lane = m_current_lane;
+                m_current_state = PLC;
+                break;
+            case LC:
+                lane = m_target_lane;
+                m_current_state = LC;
+                break;
+            default:
+                break;
+        }
+~~~~
+
+
+* The ancor points vectors of X and Y coordinates will be used in a later step to fit a polynomial for the trajectory path, and the first points to add are the previpus and current position of the car in map coordinates, in case the previous path array is empty, we obtain the previous position of the car by retrodicting the current x y and yaw variables. 
+
+~~~~
+    double ref_car_x = m_car_x;
+    double ref_car_y = m_car_y;
+    double ref_car_yaw = deg2rad( m_car_yaw );
+    m_achor_points_x.clear( );
+    m_achor_points_y.clear( );
+    size_t previous_size = m_previous_path_x.size( );
+
+    if( previous_size < 2 )
+    {
+        double prev_carx = m_car_x - std::cos( ref_car_yaw );
+        double prev_cary = m_car_y - std::sin( ref_car_yaw );
+
+        m_achor_points_x.push_back( prev_carx );
+        m_achor_points_x.push_back( m_car_x );
+
+        m_achor_points_y.push_back( prev_cary );
+        m_achor_points_y.push_back( m_car_y );
+    }
+    else
+    {
+        ref_car_x = m_previous_path_x[ previous_size - 1 ];
+        ref_car_y = m_previous_path_y[ previous_size - 1 ];
+
+        double ref_car_prev_x = m_previous_path_x[ previous_size - 2 ];
+        double ref_car_prev_y = m_previous_path_y[ previous_size - 2 ];
+        ref_car_yaw = std::atan2( ref_car_y - ref_car_prev_y, ref_car_x - ref_car_prev_x );
+
+        m_achor_points_x.push_back( ref_car_prev_x );
+        m_achor_points_x.push_back( ref_car_x );
+
+        m_achor_points_y.push_back( ref_car_prev_y );
+        m_achor_points_y.push_back( ref_car_y );
+    }
+~~~~
+* From the current position of the car in Frenet coordinates, 3 waypoints are created at curr_s + 30 mts, curr_s + 60 mts, and curr_s + 90 mts. The cartesians coordinates of the waypoints are computed with the getXY function from the helpers header, and added to the correspondant anchor point array. 
+
+~~~~
+    double s_1 = ( m_car_s + 30 );
+    double s_2 = ( m_car_s + 60 );
+    double s_3 = ( m_car_s + 90 );
+
+    std::vector<double> wp0 = getXY( s_1, ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
+    std::vector<double> wp1 = getXY( s_2, ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
+    std::vector<double> wp2 = getXY( s_3, ( 2 + 4 * lane ), m_map_waypoints_s, m_map_waypoints_x, m_map_waypoints_y );
+
+    m_achor_points_x.push_back( wp0[ 0 ] );
+    m_achor_points_x.push_back( wp1[ 0 ] );
+    m_achor_points_x.push_back( wp2[ 0 ] );
+
+    m_achor_points_y.push_back( wp0[ 1 ] );
+    m_achor_points_y.push_back( wp1[ 1 ] );
+    m_achor_points_y.push_back( wp2[ 1 ] );
+~~~~
+* The anchor points are transfromed from map frame to vehicle frame 
+~~~~
+ for( size_t i = 0; i < m_achor_points_y.size( ); i++ )
+    {
+        double tempx = m_achor_points_x[ i ] - ref_car_x;
+        double tempy = m_achor_points_y[ i ] - ref_car_y;
+
+        m_achor_points_x[ i ] = tempx * cos( -ref_car_yaw ) - tempy * sin( -ref_car_yaw );
+        m_achor_points_y[ i ] = tempx * sin( -ref_car_yaw ) + tempy * cos( -ref_car_yaw );
+    }
+~~~~
+
+* The anchor points are input to the set_points function from the Spline.h impleemntation to approximate a polynomial with the data. 
+~~~~
+    tk::spline fitter;
+    fitter.set_points( m_achor_points_x, m_achor_points_y );
+
+ ~~~~
+ 
+* Previously visited points are added to the output trajectory
+~~~~
+    m_trajectory.next_ptsx.insert( m_trajectory.next_ptsx.end( ), m_previous_path_x.begin( ), m_previous_path_x.end( ) );
+    m_trajectory.next_ptsy.insert( m_trajectory.next_ptsy.end( ), m_previous_path_y.begin( ), m_previous_path_y.end( ) );
+~~~~
+
+* As explained in class, we have to compute the distance increment or separation between the output points in the trajectory, this will be affected by the desired reference velocity in meters and  the refresh rate of the sensor (20 ms). By the use of the fitted polynomial, we generated waypoints in vehicle coordinate frame with the correct separation, and transform them into map coordinate system to output to the simulator. 
+~~~~
+    //  compute target points from fitted polynomial
+    double target_x = 30; // expressed in meters
+    double target_y = fitter( target_x );
+
+    double target_dist = std::sqrt( ( target_x*target_x ) + ( target_y*target_y ) );
+    double N = target_dist / ( REFRESH_RATE*m_ref_velocity*MPH_TO_MTSPS );
+    double dist_increment = target_x / N;
+    double x_offset = 0;
+    for( size_t i = 0; i < 50 - m_previous_path_x.size( ); i++ )
+    {
+        // point in local vehicle coordinate system
+        double x_point_vcs = x_offset + dist_increment;
+        double y_point_vcs = fitter( x_point_vcs );
+        x_offset = x_point_vcs; /*save for next iteration*/
+
+        // point in map coordinate system
+        double x_point_mcs = ( x_point_vcs*cos( ref_car_yaw ) ) - ( y_point_vcs * sin( ref_car_yaw ) ) + ref_car_x;
+        double y_point_mcs = ( x_point_vcs*sin( ref_car_yaw ) ) + ( y_point_vcs * cos( ref_car_yaw ) ) + ref_car_y;
+
+        // add point to the path sent to sim
+        m_trajectory.next_ptsx.push_back( x_point_mcs );
+        m_trajectory.next_ptsy.push_back( y_point_mcs );
+
+    }
+
+~~~~
+* Finally in main.cpp the  m_trajectory.next_ptsx and  m_trajectory.next_ptsy are send to simulator. 

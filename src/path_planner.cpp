@@ -228,7 +228,7 @@ namespace BehaviouralPLanning
         tk::spline fitter;
         fitter.set_points( m_achor_points_x, m_achor_points_y );
 
-        // insert previous path points into the curren trajectory
+        // insert previous path points into the current trajectory
         m_trajectory.next_ptsx.insert( m_trajectory.next_ptsx.end( ), m_previous_path_x.begin( ), m_previous_path_x.end( ) );
         m_trajectory.next_ptsy.insert( m_trajectory.next_ptsy.end( ), m_previous_path_y.begin( ), m_previous_path_y.end( ) );
 
@@ -242,7 +242,7 @@ namespace BehaviouralPLanning
         double x_offset = 0;
         for( size_t i = 0; i < 50 - m_previous_path_x.size( ); i++ )
         {
-            // point in local vehicle coordinate syste
+            // point in local vehicle coordinate system
             double x_point_vcs = x_offset + dist_increment;
             double y_point_vcs = fitter( x_point_vcs );
             x_offset = x_point_vcs; /*save for next iteration*/

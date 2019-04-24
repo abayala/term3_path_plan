@@ -94,7 +94,12 @@ To tackle this problem I decided to implement a Finite State Machine (FSM) that 
  The main entry point which is called in main.cpp  is PathPlanner::process_data(...). This function receives as input all the simulator data and if necessary stores it in class member variables. With the vehicle d position it computes the current lane id, to then process the sensor fusion data and determine if there are cars too close in the current lane. 
  The velocity in vx and vy from the other cars is used to compute the linear speed and compensate their displacement in S relative to the refresh rate of the data and the previous path elements. 
  If any of the cars is within the range of less than 30 mts in front of the current position then a flag is activated. 
- This flag is monitored to increase or decresa the ref_velocity.
+ This flag is monitored to increase or decrease the ref_velocity.
+ 
+ After the vehicle velocity and other vehicles positions are monitored, then the function  BehaviouralPLanning::e_possible_states PathPlanner::choose_next_state( ) is called, and contains the main logic of the FSM. It goes through all the cases and states described in the section before to select the state with the least cost and returns it.
+
+Once a next state is chosen, the function  
+ 
  
  
 

@@ -10,10 +10,10 @@ Also the car should not experience total acceleration over 10 m/s^2 and jerk tha
 
 ## Provided Information
 
-A sparse map list of waypoints around the highway is provided in data/highway_map.txt
-Each waypoint in the list contains  [x,y,s,dx,dy] values. x and y are the waypoint's map coordinate position, the s value is the distance along the road to get to that waypoint in meters, the dx and dy values define the unit normal vector pointing outward of the highway loop.
+A sparse map list of way-points around the highway is provided in data/highway_map.txt
+Each way-point in the list contains  [x,y,s,dx,dy] values. x and y are the way-point's map coordinate position, the s value is the distance along the road to get to that way-point in meters, the dx and dy values define the unit normal vector pointing outward of the highway loop.
 
-The highway's waypoints loop around so the frenet s value, distance along the road, goes from 0 to 6945.554.
+The highway's way-points loop around so the Frenet s value, distance along the road, goes from 0 to 6945.554.
 
 The car's localization and sensor fusion data is provided, which is received in a message and described below:
 
@@ -23,7 +23,7 @@ The car's localization and sensor fusion data is provided, which is received in 
 
 ["y"] The car's y position in map coordinates
 
-["s"] The car's s position in frenet coordinates
+["s"] The car's s position in Frenet coordinates
 
 ["d"] The car's d position in frenet coordinates
 
@@ -42,17 +42,17 @@ the path has processed since last time.
 
 ### Previous path's end s and d values 
 
-["end_path_s"] The previous list's last point's frenet s value
+["end_path_s"] The previous list's last point's Frenet s value
 
-["end_path_d"] The previous list's last point's frenet d value
+["end_path_d"] The previous list's last point's Frenet d value
 
 ### Sensor Fusion Data, a list of all other car's attributes on the same side of the road. (No Noise)
 
-["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates. 
+["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in Frenet coordinates, car's d position in Frenet coordinates. 
 
 ### Details
 
-1. The car uses a perfect controller and will visit every (x,y) point it receives in the list every .02 seconds. The units for the (x,y) points are in meters and the spacing of the points determines the speed of the car. The vector going from a point to the next point in the list dictates the angle of the car. Acceleration both in the tangential and normal directions is measured along with the jerk, the rate of change of total Acceleration. The (x,y) point paths that the planner recieves should not have a total acceleration that goes over 10 m/s^2, also the jerk should not go over 50 m/s^3. (NOTE: As this is BETA, these requirements might change. Also currently jerk is over a .02 second interval, it would probably be better to average total acceleration over 1 second and measure jerk from that.
+1. The car uses a perfect controller and will visit every (x,y) point it receives in the list every .02 seconds. The units for the (x,y) points are in meters and the spacing of the points determines the speed of the car. The vector going from a point to the next point in the list dictates the angle of the car. Acceleration both in the tangential and normal directions is measured along with the jerk, the rate of change of total Acceleration. The (x,y) point paths that the planner receives should not have a total acceleration that goes over 10 m/s^2, also the jerk should not go over 50 m/s^3. (NOTE: As this is BETA, these requirements might change. Also currently jerk is over a .02 second interval, it would probably be better to average total acceleration over 1 second and measure jerk from that.
 
 2. There will be some latency between the simulator running and the path planner returning a path, with optimized code usually its not very long maybe just 1-3 time steps. During this delay the simulator will continue using points that it was last given, because of this its a good idea to store the last points you have used so you can have a smooth transition. previous_path_x, and previous_path_y can be helpful for this transition since they show the last points given to the simulator controller with the processed points already removed. You would either return a path that extends this previous path or make sure to create a new path that has a smooth transition with this last path.
 
@@ -100,7 +100,7 @@ To tackle this problem I decided to implement a Finite State Machine (FSM) that 
 
 Once a next state is chosen, the function   void PathPlanner::execute_next_state( e_possible_states next_state ) is called, which contains the main code to generate the trajectory to be send to the simulator. My implementation is mainly based from the class material, and follows the next sequences:
 
-*  The local variable lane is later used to generate trajectory points and is set depending on the next state to execute, depending on the state other variables are set or resetted
+*  The local variable lane is later used to generate trajectory points and is set depending on the next state to execute, depending on the state other variables are set or reseted
 
 ~~~~
   switch( next_state )
@@ -125,7 +125,7 @@ Once a next state is chosen, the function   void PathPlanner::execute_next_state
 ~~~~
 
 
-* The ancor points vectors of X and Y coordinates will be used in a later step to fit a polynomial for the trajectory path, and the first points to add are the previpus and current position of the car in map coordinates, in case the previous path array is empty, we obtain the previous position of the car by retrodicting the current x y and yaw variables. 
+* The anchor points vectors of X and Y coordinates will be used in a later step to fit a polynomial for the trajectory path, and the first points to add are the previous and current position of the car in map coordinates, in case the previous path array is empty, we obtain the previous position of the car by retrofitting the current x y and yaw variables. 
 
 ~~~~
     double ref_car_x = m_car_x;
@@ -162,7 +162,7 @@ Once a next state is chosen, the function   void PathPlanner::execute_next_state
         m_achor_points_y.push_back( ref_car_y );
     }
 ~~~~
-* From the current position of the car in Frenet coordinates, 3 waypoints are created at curr_s + 30 mts, curr_s + 60 mts, and curr_s + 90 mts. The cartesians coordinates of the waypoints are computed with the getXY function from the helpers header, and added to the correspondant anchor point array. 
+* From the current position of the car in Frenet coordinates, 3 way-points are created at curr_s + 30 mts, curr_s + 60 mts, and curr_s + 90 mts. The Cartesian coordinates of the way-points are computed with the getXY function from the helpers header, and added to the correspondent anchor point array. 
 
 ~~~~
     double s_1 = ( m_car_s + 30 );
@@ -193,7 +193,7 @@ Once a next state is chosen, the function   void PathPlanner::execute_next_state
     }
 ~~~~
 
-* The anchor points are input to the set_points function from the Spline.h impleemntation to approximate a polynomial with the data. 
+* The anchor points are input to the set_points function from the Spline.h implementation to approximate a polynomial with the data. 
 ~~~~
     tk::spline fitter;
     fitter.set_points( m_achor_points_x, m_achor_points_y );
@@ -235,3 +235,16 @@ Once a next state is chosen, the function   void PathPlanner::execute_next_state
 
 ~~~~
 * Finally in main.cpp the  m_trajectory.next_ptsx and  m_trajectory.next_ptsy are send to simulator. 
+
+## Conclusion
+
+With the method described before, the vehicle was able to run for several hours without crashing, changing lanes if needed and keeping the velocity in the approved range. 
+
+## Challenges encountered during the development process
+Some changes I made to the provided code were:
+
+- Since the provided code is not cross platform, I added some compiler flags to activate code blocks that have the correct function syntax in the main.cpp to use the windows function of uWs. 
+
+- I moved the helper function implementations to a .cpp file
+
+- I corrected a bug in the getxy function, by adding (prev_wp+1) <= (int) ( maps_s.size( ) - 1 ) to the while loop, since it could happened that the index was out of bounds when the car is at the end of the loop, and s > maps_s[maps_s.size() -1]

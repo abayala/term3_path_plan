@@ -4,7 +4,7 @@
 namespace BehaviouralPLanning
 {
     //constants
-    const double FRAME_RATE = 0.02;
+    const double REFRESH_RATE = 0.02;
     const double MPH_TO_MTSPS = 1.0 / 2.24; // factor to transform miles per hour to meters per second
     const double CLOSE_RANGE = 30; // expressed in meters
     const double DESIRED_SPEED = 49.5; // expressed in miles per hour
@@ -16,7 +16,7 @@ namespace BehaviouralPLanning
 
     const double SPEED_INCREMENT = 0.224; // expressed in miles per hour
 
-    enum e_possible_states { KL,  PLC, LC };
+    enum e_possible_states { KL,  PLC, LC }; // possible states for the state machine, KL= Keep Lane, PLC= Prepare Lane Change, LC = Lane Change
     enum e_sensor_fus_indexes {ID=0,X_COOR,Y_COOR, VX,VY,S,D };
     struct s_trajectory 
     {

@@ -262,7 +262,7 @@ namespace BehaviouralPLanning
         double target_y = fitter( target_x );
 
         double target_dist = std::sqrt( ( target_x*target_x ) + ( target_y*target_y ) );
-        double N = target_dist / ( FRAME_RATE*m_ref_velocity*MPH_TO_MTSPS );
+        double N = target_dist / ( REFRESH_RATE*m_ref_velocity*MPH_TO_MTSPS );
         double dist_increment = target_x / N;
         double x_offset = 0;
         for( size_t i = 0; i < 50 - m_previous_path_x.size( ); i++ )
@@ -327,7 +327,7 @@ namespace BehaviouralPLanning
                 // get car position in the lane
                 double other_car_s = sensor_fusion [ i ] [ e_sensor_fus_indexes::S ];
                 // compensate through time and preditc car_s
-                other_car_s += double ( prev_size ) * FRAME_RATE * linear_speed;
+                other_car_s += double ( prev_size ) * REFRESH_RATE * linear_speed;
                 // if car is closer thatn a certain threshold 
                 if ( other_car_s > m_car_s && ( ( other_car_s - m_car_s ) < CLOSE_RANGE ) )
                 {
@@ -372,7 +372,7 @@ namespace BehaviouralPLanning
                 // get car position in the lane
                 double other_car_s = m_sensor_fusion[ i ][ 5 ];
                 // compensate through time and preditc car_s
-                other_car_s += double( m_previous_path_x.size () ) * FRAME_RATE * linear_speed;
+                other_car_s += double( m_previous_path_x.size () ) * REFRESH_RATE * linear_speed;
                 output.push_back( other_car_s );
 
         }
